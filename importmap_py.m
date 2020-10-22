@@ -1,4 +1,4 @@
-function result = importmap_py(save_filename)
+function result = importmap_py(save_filename, basedir)
 % import map layers from pycharm generated code
 
 
@@ -17,15 +17,25 @@ function result = importmap_py(save_filename)
 % fnamelin = '/Users/ah/PycharmProjects/ags_grabber/map_layers/lakes_inac_data_[37.474015, -80.868333]_10.0km.csv';
 
 % temp file names to read from
-fnameelev = 'C:\\Users\\Larkin\\ags_grabber\\map_layers\\elv_data_temp.csv';
-fnameriv = 'C:\\Users\\Larkin\\ags_grabber\\map_layers\\rivers_data_temp.csv';
-fnamerivbd = 'C:\\Users\\Larkin\\ags_grabber\\map_layers\\rivers_bdd_data_temp.csv';
-fnamerivin = 'C:\\Users\\Larkin\\ags_grabber\\map_layers\\rivers_bdd_inac_data_temp.csv';
-fnameroad = 'C:\\Users\\Larkin\\ags_grabber\\map_layers\\roads_data_temp.csv';
-fnamerr = 'C:\\Users\\Larkin\\ags_grabber\\map_layers\\railroads_data_temp.csv';
-fnamep = 'C:\\Users\\Larkin\\ags_grabber\\map_layers\\powerlines_data_temp.csv';
-fnamelbd = 'C:\\Users\\Larkin\\ags_grabber\\map_layers\\lakes_data_temp.csv';
-fnamelin = 'C:\\Users\\Larkin\\ags_grabber\\map_layers\\lakes_inac_data_temp.csv';
+% fnameelev = 'C:\\Users\\Larkin\\ags_grabber\\map_layers\\elv_data_temp.csv';
+% fnameriv = 'C:\\Users\\Larkin\\ags_grabber\\map_layers\\rivers_data_temp.csv';
+% fnamerivbd = 'C:\\Users\\Larkin\\ags_grabber\\map_layers\\rivers_bdd_data_temp.csv';
+% fnamerivin = 'C:\\Users\\Larkin\\ags_grabber\\map_layers\\rivers_bdd_inac_data_temp.csv';
+% fnameroad = 'C:\\Users\\Larkin\\ags_grabber\\map_layers\\roads_data_temp.csv';
+% fnamerr = 'C:\\Users\\Larkin\\ags_grabber\\map_layers\\railroads_data_temp.csv';
+% fnamep = 'C:\\Users\\Larkin\\ags_grabber\\map_layers\\powerlines_data_temp.csv';
+% fnamelbd = 'C:\\Users\\Larkin\\ags_grabber\\map_layers\\lakes_data_temp.csv';
+% fnamelin = 'C:\\Users\\Larkin\\ags_grabber\\map_layers\\lakes_inac_data_temp.csv';
+
+fnameelev = strjoin({basedir, '/map_layers/elv_data_temp.csv'},'');
+fnameriv = strjoin({basedir, '/map_layers/rivers_data_temp.csv'},'');
+fnamerivbd = strjoin({basedir, '/map_layers/rivers_bdd_data_temp.csv'},'');
+fnamerivin = strjoin({basedir, '/map_layers/rivers_bdd_inac_data_temp.csv'},'');
+fnameroad = strjoin({basedir, '/map_layers/roads_data_temp.csv'},'');
+fnamerr = strjoin({basedir, '/map_layers/railroads_data_temp.csv'},'');
+fnamep = strjoin({basedir, '/map_layers/powerlines_data_temp.csv'},'');
+fnamelbd = strjoin({basedir, '/map_layers/lakes_data_temp.csv'},'');
+fnamelin = strjoin({basedir, '/map_layers/lakes_inac_data_temp.csv'},'');
 
 Zelev = load(fnameelev);
 BWriver = load(fnameriv);
@@ -55,7 +65,7 @@ BWInac = BWriverInac + BWlakeInac;
 BWLF(BWLF ~= 0) = 1;
 BWInac(BWInac ~= 0) = 1;
 
-file_path = 'C:\\Users\\Larkin\\ags_grabber\\matlab_data\\'; % define your own path here!
+file_path = strjoin({basedir, '/matlab_data/'},''); % define your own path here!
 % save_filename is just the ics point in question
 save(strjoin({file_path, 'BW_LFandInac_Zelev_',save_filename,'.mat'},''),'BWLF','BWInac','sZelev')
 

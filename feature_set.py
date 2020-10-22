@@ -253,16 +253,16 @@ if __name__ == "__main__":
            [-78.46993, 38.44706,'DevilsDitch'],
            [-79.33887, 37.67752, 'Punchbowl'],
            [-78.52798, 37.99092,'BiscuitRun']]
+    base_dir = 'C:/Users/Larkin/ags_grabber'
 
     eng = matlab.engine.start_matlab() # engine for running matlab
 
     for i,ics_pt in enumerate(ics):
 
         anchor_point = [float(ics_pt[0]), float(ics_pt[1])]
-        extent = 20e3
+        extent = 15e3
         save_flag = True
         plot_flag = False
-        # file_id = str(anchor_point) + "_" + str(extent/1000) + "km"
         file_extension = 'temp'
 
         sample_dist = int(extent/100)
@@ -273,7 +273,7 @@ if __name__ == "__main__":
         time.sleep(1) # wait for... files to settle?
 
         # run matlab
-        res = eng.importmap_py(str(ics_pt[2]))
+        res = eng.importmap_py(str(ics_pt[2]), base_dir)
 
         print("------- total time = {} seconds, iteration {}/{} ------".format(time.time() - start_time,i,len(ics)))
     eng.quit()
