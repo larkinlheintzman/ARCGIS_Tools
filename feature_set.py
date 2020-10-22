@@ -260,7 +260,7 @@ if __name__ == "__main__":
     for i,ics_pt in enumerate(ics):
 
         anchor_point = [float(ics_pt[0]), float(ics_pt[1])]
-        extent = 15e3
+        extent = 10e3
         save_flag = True
         plot_flag = False
         file_extension = 'temp'
