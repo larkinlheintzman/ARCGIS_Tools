@@ -38,6 +38,7 @@ def grab_features(anchor_point, extent, sample_dist = 10, heading = 0, save_file
 
     gis = GIS(username="larkinheintzman",password="Meepp97#26640") # linked my arcgis pro account
     ap_meters = lat_lon2meters(anchor_point[0], anchor_point[1])
+    # print(ap_meters)
 
     scale_factor = 3/20 # factor to get 6.66667m mapping from 1m mapping (1/6.6667)
     scaled_extent = np.ceil(scale_factor*extent).astype(np.int)
@@ -228,31 +229,18 @@ def grab_features(anchor_point, extent, sample_dist = 10, heading = 0, save_file
 
 if __name__ == "__main__":
 
-    # read in ics from csv sheet
-    # ics = []
-    # with open('lp_data/DD.DDD WGS Coordinates_cleaned.xlsx - DD Format.csv') as f:
-    #     reader = csv.reader(f)
-    #     for row_num, row in enumerate(reader):
-    #         if 'Hiker' in row[8]:
-    #             # check for nearby find point
-    #             init = lat_lon2meters(float(row[19]), float(row[20]))
-    #             find = lat_lon2meters(float(row[21]), float(row[22]))
-    #             if np.linalg.norm(np.array(find) - np.array(init)) <= 5000:
-    #                 ics.append([row[19], row[20], row_num+1])
+    ics = [
+        [38.29288, -78.65848,  'BrownMtn-hiker'],
+        [38.44706, -78.46993,  'DevilsDitch_hikers'],
+        [37.67752, -79.33887,  'Punchbowl_hiker'],
+        [37.99092, -78.52798,  'BiscuitRun_hikers'],
+        [38.24969, -78.39555,  'Quinque_dementia'],
+        [38.55209, -78.32099,  'OldRag'],
+        [38.20656, -78.67878,  'BrownsCove'],
+        [38.02723, -78.45076,  'Charlottesville_dementia'],
+        [34.12751, -116.93247, 'SanBernardinoPeak'] ,
+        ]
 
-    # ics = [[36.660460, -81.543921, 'grayson'],
-    #        [37.197730, -80.585233, 'kentland'],
-    #        [36.891640, -81.524214, 'hmpark']]
-
-    # BrownMtn-hiker	VA	hikers	-78.65848	38.29288	495	-78.65809	38.29254	2 people
-    # DevilsDitch_hikers	VA	Hikers	-78.46993	38.44706	653	-78.43693	38.44311	2 people
-    # Punchbowl_hiker	VA	Hiker	-79.33887	37.67752	593	-79.40187	37.6163
-    # BiscuitRun_hikers	VA	Hikers	-78.52798	37.99092	55	-78.52562	37.98698	2 people
-
-    ics = [[-78.65848, 38.29288, 'BrownMtn'],
-           [-78.46993, 38.44706,'DevilsDitch'],
-           [-79.33887, 37.67752, 'Punchbowl'],
-           [-78.52798, 37.99092,'BiscuitRun']]
     base_dir = 'C:/Users/Larkin/ags_grabber'
 
     eng = matlab.engine.start_matlab() # engine for running matlab
@@ -260,7 +248,7 @@ if __name__ == "__main__":
     for i,ics_pt in enumerate(ics):
 
         anchor_point = [float(ics_pt[0]), float(ics_pt[1])]
-        extent = 10e3
+        extent = 15e3
         save_flag = True
         plot_flag = False
         file_extension = 'temp'
@@ -273,7 +261,8 @@ if __name__ == "__main__":
         time.sleep(1) # wait for... files to settle?
 
         # run matlab
-        res = eng.importmap_py(str(ics_pt[2]), base_dir)
+        if save_flag:
+            res = eng.importmap_py(str(ics_pt[2]), base_dir)
 
         print("------- total time = {} seconds, iteration {}/{} ------".format(time.time() - start_time,i,len(ics)))
     eng.quit()

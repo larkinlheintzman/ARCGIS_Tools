@@ -177,14 +177,17 @@ def get_terrain_map(lat_lon = [0,0], sample_dist = 10, extent = 100, heading = 0
                 qs = np.stack([xs.reshape(len(elv_samples)), ys.reshape(len(elv_samples))]).T
                 es = es.reshape(len(elv_samples))
                 # data came back in weird ordering, need to re-order
-                # print("re-ordering data ...")
+                print("re-ordering data ...")
                 es_square = np.zeros([sc,sc])
                 for scx in range(sc):
                     for scy in range(sc): # maybe the least efficient way to do this
-                        idx = np.where(np.all(qs == np.asarray([X[scx,scy],Y[scx,scy]]),axis = 1))
-                        es_square[scx,scy] = es[idx]
+                        idx = np.where(np.all(np.abs(qs - np.asarray([X[scx,scy],Y[scx,scy]])) <= 1e-9,axis = 1))
+                        try:
+                            es_square[scx,scy] = es[idx]
+                        except ValueError as e:
+                            print("hellfire")
                 es = es_square
-                # print("done re-ordering")
+                print("done re-ordering")
 
             # then just the tuple of all
             data_temp = []
