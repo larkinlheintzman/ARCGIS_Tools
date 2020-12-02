@@ -29,12 +29,16 @@ def grab_features(anchor_point, extent, sample_dist = 10, heading = 0, save_file
     water_url = "https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer/9"
     powerlines_url = "https://services1.arcgis.com/Hp6G80Pky0om7QvQ/ArcGIS/rest/services/Electric_Power_Transmission_Lines/FeatureServer/0"
     railroads_url = "https://carto.nationalmap.gov/arcgis/rest/services/transportation/MapServer/35"
+    trails_url = "https://partnerships.nationalmap.gov/arcgis/rest/services/USGSTrails/MapServer/0"
 
     # adding water_url twice, once for boundaries and once for linear features
     # the layer named 'lakes' gets boundary treatment
-    url_list = [river_url, riverw_url, roads_url, water_url, powerlines_url, railroads_url]
-    name_list = ['rivers', 'rivers_bdd', 'roads', 'lakes', 'powerlines', 'railroads']
+    url_list = [trails_url, river_url, riverw_url, roads_url, water_url, powerlines_url, railroads_url]
+    # url_list = [trails_url]
+    name_list = ['trails', 'rivers', 'rivers_bdd', 'roads', 'lakes', 'powerlines', 'railroads']
+    # name_list = ['trails']
     inac_layers = ['rivers_bdd', 'lakes']
+    inac_layers = []
 
     gis = GIS(username="larkinheintzman",password="Meepp97#26640") # linked my arcgis pro account
     ap_meters = lat_lon2meters(anchor_point[0], anchor_point[1])
@@ -230,15 +234,16 @@ def grab_features(anchor_point, extent, sample_dist = 10, heading = 0, save_file
 if __name__ == "__main__":
 
     ics = [
-        [38.29288, -78.65848,  'BrownMtn-hiker'],
-        [38.44706, -78.46993,  'DevilsDitch_hikers'],
-        [37.67752, -79.33887,  'Punchbowl_hiker'],
-        [37.99092, -78.52798,  'BiscuitRun_hikers'],
-        [38.24969, -78.39555,  'Quinque_dementia'],
+        # [38.29288, -78.65848,  'BrownMtn-hiker'],
+        # [38.44706, -78.46993,  'DevilsDitch_hikers'],
+        # [37.67752, -79.33887,  'Punchbowl_hiker'],
+        # [37.99092, -78.52798,  'BiscuitRun_hikers'],
+        # [37.519485, -79.651315,  'temp'],
+        # [38.24969, -78.39555,  'Quinque_dementia'],
         [38.55209, -78.32099,  'OldRag'],
-        [38.20656, -78.67878,  'BrownsCove'],
-        [38.02723, -78.45076,  'Charlottesville_dementia'],
-        [34.12751, -116.93247, 'SanBernardinoPeak'] ,
+        # [38.20656, -78.67878,  'BrownsCove'],
+        # [38.02723, -78.45076,  'Charlottesville_dementia'],
+        # [34.12751, -116.93247, 'SanBernardinoPeak'] ,
         ]
 
     base_dir = 'C:/Users/Larkin/ags_grabber'
