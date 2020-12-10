@@ -9,6 +9,8 @@ from math import gcd
 import math
 from pyproj import Transformer, Proj, transform
 from scipy.interpolate import griddata
+from scipy import interpolate
+import time
 
 # This function computes the factor of the argument passed
 def factorization(n):
@@ -152,8 +154,8 @@ def get_terrain_map(lat_lon = [0,0], sample_dist = 10, extent = 100, heading = 0
         y_row = np.empty([sc,0])
         e_row = np.empty([sc,0])
         for i in range(cc): # inner loop for x values O_O
-            x_values = [np.linspace(lhc_pt[0] + i * sample_extents, lhc_pt[0] + (i + 1) * sample_extents, sc)]
-            y_values = [np.linspace(lhc_pt[1] + j * sample_extents, lhc_pt[1] + (j + 1) * sample_extents, sc)]
+            x_values = [np.linspace(lhc_pt[0] + i * sample_extents, lhc_pt[0] + (i + 1 - 1/sc) * sample_extents, sc)]
+            y_values = [np.linspace(lhc_pt[1] + j * sample_extents, lhc_pt[1] + (j + 1 - 1/sc) * sample_extents, sc)]
             [X,Y] = np.meshgrid(x_values, y_values)
             # put in rotation here
             geo_points = [point_rotation(origin = [cen_pt[0],cen_pt[1]],pt = [xp,yp],ang = heading) for xv,yv in zip(X,Y) for xp,yp in zip(xv,yv)]
@@ -229,26 +231,37 @@ def get_terrain_map(lat_lon = [0,0], sample_dist = 10, extent = 100, heading = 0
     # savedimg = elv_layer.export_image(bbox=elv_layer.extent, size=[3840,2160], f='image', save_folder='.', save_file='testerino.jpg')
 
 if __name__ == "__main__":
-    # lat_lon = [[[37.206026, -80.636010], [37.266475, -80.639015], [37.283674, -80.589005],
-    #             [37.224313, -80.585250], [37.205225, -80.604815], [37.206026, -80.636010]]]
-    # lat_lon = [[[37.235195, -80.410403], [37.226427, -80.422368], [37.227209, -80.404514], [37.227209, -80.404504]]]
-    lat_lon = [[[37.196791, -80.578343], [37.196874, -80.578430], [37.196974, -80.578518], [37.197229, -80.578093], [37.197482, -80.577689], [37.197401, -80.577610], [37.197319, -80.577528], [37.197066, -80.577928]]]
-    # lat_lon should be a list of length 1, containing a set of 2-length lists
-    # then the terrain map will be placed at the centroid of the lat-lon-points
-    total_extent = 12000
-    mesh_size = 30
-    zoom_level = 4
-    [z_array,x_array,y_array, data, cen_point_ll] = get_terrain_map(lat_lon, sample_dist = zoom_level*int(total_extent/mesh_size), extent = zoom_level*total_extent, heading=40, show_plot=False, verbosity=True)
 
-    fig = plt.figure()
-    ax = fig.gca(projection='3d')
 
-    # plot results
-    x, y, z = zip(*data)
-    print(data)
-    grid_x, grid_y = np.mgrid[min(x):max(x):100j, min(y):max(y):100j]
-    points = np.array([x, y])
-    grid_z = griddata(points.transpose(), z, (grid_x, grid_y), method='cubic', fill_value=np.mean(z))
-    # print(grid_z)
-    ax.plot_surface(grid_x, grid_y, grid_z, cmap='viridis')
+    # anchor_point = [float(ics_pt[0]), float(ics_pt[1])]
+    anchor_point = [42.17965, -74.21362]
+    extent = 20e3
+    sample_dist = int(extent/100)
+    heading = 0
+    start_time = time.time()
+    # save terrain as csv file (this method is pretty slow, but can compensate with interp)
+    [e,x,y,data,ll_pt] = get_terrain_map(lat_lon=anchor_point,
+                                         sample_dist = sample_dist,
+                                         extent = extent,
+                                         heading = -heading) # because flipping
+    # flip elevation data up to down to match other layers
+    e = np.flipud(e)
+
+    scale_factor = 3/20 # factor to get 6.66667m mapping from 1m mapping (1/6.6667)
+    scaled_extent = np.ceil(scale_factor*extent).astype(np.int)
+
+    # interpolate terrain to match size/resolution of other layers
+    f = interpolate.interp2d(np.arange(0, extent, sample_dist), np.arange(0, extent, sample_dist), e, kind='cubic')
+    x_temp = np.linspace(0,extent,scaled_extent) # get correct size of terrain map
+    y_temp = np.linspace(0,extent,scaled_extent)
+    e_interp = f(x_temp, y_temp)
+
+    plt.imshow(e_interp)
     plt.show()
+    plt.imshow(e)
+    plt.show()
+
+    # elv_filename = "map_layers\\elv_data_"+file_id+".csv"
+    # if save_files:
+    #     np.savetxt(elv_filename,e_interp,delimiter=",", fmt='%f')
+

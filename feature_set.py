@@ -183,7 +183,7 @@ def grab_features(anchor_point, extent, sample_dist = 10, heading = 0, save_file
                         rm_mask = np.logical_or(rm_mask, np.logical_or(pts_inac[:,1] < 0, pts_inac[:,1] >= inac_bin_map.shape[0]))
                         pts_inac = pts_inac[np.invert(rm_mask),:]
                         inac_bin_map[pts_inac[:,1], pts_inac[:,0]] = 1  # set indices to 1
-                        print("looped inac calculation time = {} sec".format(time.time() - s_time))
+                        # print("looped inac calculation time = {} sec".format(time.time() - s_time))
 
                     else:
                         # force it to be a loop
@@ -217,7 +217,7 @@ def grab_features(anchor_point, extent, sample_dist = 10, heading = 0, save_file
                         rm_mask = np.logical_or(rm_mask, np.logical_or(pts_inac[:,1] < 0, pts_inac[:,1] >= inac_bin_map.shape[0]))
                         pts_inac = pts_inac[np.invert(rm_mask),:]
                         inac_bin_map[pts_inac[:,1], pts_inac[:,0]] = 1  # set indices to 1
-                        print("looped(tm) inac calculation time = {} sec".format(time.time() - s_time))
+                        # print("looped(tm) inac calculation time = {} sec".format(time.time() - s_time))
 
 
                         #-----------------------------
