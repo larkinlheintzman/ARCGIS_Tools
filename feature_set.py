@@ -38,10 +38,6 @@ def grab_features(anchor_point, extent, sample_dist = 10, heading = 0, save_file
     name_list = ['rivers_bdd', 'rivers', 'roads', 'lakes', 'powerlines', 'railroads', 'trails']
     inac_layers = ['rivers_bdd', 'lakes']
 
-    # url_list = [riverw_url, river_url]
-    # name_list = ['rivers_bdd', 'rivers','bleh','bleh']
-    # inac_layers = ['rivers_bdd']
-
     gis = GIS(username="larkinheintzman",password="Meepp97#26640") # linked my arcgis pro account
     ap_meters = lat_lon2meters(anchor_point[0], anchor_point[1])
 
@@ -79,6 +75,9 @@ def grab_features(anchor_point, extent, sample_dist = 10, heading = 0, save_file
                 query_cnt = query_cnt + 1
                 print("error on query: {}".format(e))
                 print("{} layer failed on query, trying again ...".format(name_list[i]))
+                gis = GIS(username="larkinheintzman",password="Meepp97#26640") # linked my arcgis pro account
+                lyr = FeatureLayer(url=url, gis=gis)
+
         if query_cnt > 2 and not q:
             print("{} layer failed too many times, leaving empty".format(name_list[i]))
             if save_files:
@@ -293,7 +292,8 @@ def grab_features(anchor_point, extent, sample_dist = 10, heading = 0, save_file
     e = np.flipud(e)
 
     # interpolate terrain to match size/resolution of other layers
-    f = interpolate.interp2d(np.arange(0, extent, sample_dist), np.arange(0, extent, sample_dist), e, kind='cubic')
+    c = np.int(extent/sample_dist)
+    f = interpolate.interp2d(np.linspace(0, extent, c), np.linspace(0, extent, c), e, kind='cubic')
     x_temp = np.linspace(0,extent,scaled_extent) # get correct size of terrain map
     y_temp = np.linspace(0,extent,scaled_extent)
     e_interp = f(x_temp, y_temp)

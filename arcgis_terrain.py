@@ -184,6 +184,7 @@ def get_terrain_map(lat_lon = [0,0], sample_dist = 10, extent = 100, heading = 0
                 for scx in range(sc):
                     for scy in range(sc): # maybe the least efficient way to do this
                         idx = np.where(np.all(np.abs(qs - np.asarray([X[scx,scy],Y[scx,scy]])) <= 1e-9,axis = 1))
+                        # print(idx)
                         try:
                             es_square[scx,scy] = es[idx]
                         except ValueError as e:
@@ -251,7 +252,8 @@ if __name__ == "__main__":
     scaled_extent = np.ceil(scale_factor*extent).astype(np.int)
 
     # interpolate terrain to match size/resolution of other layers
-    f = interpolate.interp2d(np.arange(0, extent, sample_dist), np.arange(0, extent, sample_dist), e, kind='cubic')
+    c = np.int(extent/sample_dist)
+    f = interpolate.interp2d(np.linspace(0, extent, c), np.linspace(0, extent, c), e, kind='cubic')
     x_temp = np.linspace(0,extent,scaled_extent) # get correct size of terrain map
     y_temp = np.linspace(0,extent,scaled_extent)
     e_interp = f(x_temp, y_temp)
@@ -259,6 +261,10 @@ if __name__ == "__main__":
     plt.imshow(e_interp)
     plt.show()
     plt.imshow(e)
+    plt.show()
+    plt.imshow(x)
+    plt.show()
+    plt.imshow(y)
     plt.show()
 
     # elv_filename = "map_layers\\elv_data_"+file_id+".csv"
