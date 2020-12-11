@@ -10,6 +10,7 @@ import math
 from pyproj import Transformer, Proj, transform
 from scipy.interpolate import griddata
 from scipy import interpolate
+from scipy import ndimage
 import time
 
 # This function computes the factor of the argument passed
@@ -208,6 +209,16 @@ def get_terrain_map(lat_lon = [0,0], sample_dist = 10, extent = 100, heading = 0
         y = np.append(y, y_row, axis=0)
         e = np.append(e, e_row, axis=0)
 
+    # flip elevation data up to down to match other layers
+    e = np.flipud(e)
+    # interpolate terrain to match size/resolution of other layers
+    c = np.int(extent/sample_dist)
+    scale_factor = 3/20 # factor to get 6.66667m mapping from 1m mapping (1/6.6667)
+    scaled_extent = np.ceil(scale_factor*extent).astype(np.int)
+
+    factor = scaled_extent/e.shape[0]
+    e_interp = ndimage.zoom(e, factor, order = 3)
+
     if show_plot:
         # Attaching 3D axis to the figure
         grid_x, grid_y = np.mgrid[min(x):max(x):100j, min(y):max(y):100j]
@@ -228,7 +239,7 @@ def get_terrain_map(lat_lon = [0,0], sample_dist = 10, extent = 100, heading = 0
         print("y max: {}".format(np.max(y)))
         print("y max - min: {}".format(np.max(y)-np.min(y)))
 
-    return [e,x,y,data,lat_lon]
+    return [e,e_interp,x,y,data,lat_lon]
     # savedimg = elv_layer.export_image(bbox=elv_layer.extent, size=[3840,2160], f='image', save_folder='.', save_file='testerino.jpg')
 
 if __name__ == "__main__":
@@ -237,35 +248,50 @@ if __name__ == "__main__":
     # anchor_point = [float(ics_pt[0]), float(ics_pt[1])]
     anchor_point = [42.17965, -74.21362]
     extent = 20e3
-    sample_dist = int(extent/100)
+    sample_dist = int(extent/10)
     heading = 0
     start_time = time.time()
     # save terrain as csv file (this method is pretty slow, but can compensate with interp)
-    [e,x,y,data,ll_pt] = get_terrain_map(lat_lon=anchor_point,
+    [e,e_interp,x,y,data,ll_pt] = get_terrain_map(lat_lon=anchor_point,
                                          sample_dist = sample_dist,
                                          extent = extent,
                                          heading = -heading) # because flipping
-    # flip elevation data up to down to match other layers
-    e = np.flipud(e)
-
-    scale_factor = 3/20 # factor to get 6.66667m mapping from 1m mapping (1/6.6667)
-    scaled_extent = np.ceil(scale_factor*extent).astype(np.int)
-
-    # interpolate terrain to match size/resolution of other layers
-    c = np.int(extent/sample_dist)
-    f = interpolate.interp2d(np.linspace(0, extent, c), np.linspace(0, extent, c), e, kind='cubic')
-    x_temp = np.linspace(0,extent,scaled_extent) # get correct size of terrain map
-    y_temp = np.linspace(0,extent,scaled_extent)
-    e_interp = f(x_temp, y_temp)
 
     plt.imshow(e_interp)
+    plt.title('e interp')
     plt.show()
-    plt.imshow(e)
+
+    gdt = np.gradient(e_interp)
+    plt.imshow(np.sqrt(gdt[0]**2 + gdt[1]**2))
+    plt.title('e interp grad')
     plt.show()
-    plt.imshow(x)
+
+    c = np.int(extent / sample_dist)
+    scale_factor = 3 / 20  # factor to get 6.66667m mapping from 1m mapping (1/6.6667)
+    scaled_extent = np.ceil(scale_factor * extent).astype(np.int)
+    x_start = np.linspace(0, extent, c)
+    y_start = np.linspace(0, extent, c)
+    X_start, Y_start = np.meshgrid(x_start, y_start)
+    Z_start = np.zeros_like(X_start)
+
+    f = interpolate.Rbf(X_start, Y_start, Z_start, e, function='multiquadric')
+    x_temp = np.linspace(0,extent,scaled_extent) # get correct size of terrain map
+    y_temp = np.linspace(0,extent,scaled_extent)
+    X_temp, Y_temp = np.meshgrid(x_temp, y_temp)
+    Z_temp = np.zeros_like(X_temp)
+    e_interp = f(X_temp, Y_temp, Z_temp)
+
+    plt.imshow(e_interp)
+    plt.title('e interp old')
     plt.show()
-    plt.imshow(y)
+
+    gdt = np.gradient(e_interp)
+    plt.imshow(np.sqrt(gdt[0]**2 + gdt[1]**2))
+    plt.title('e interp grad old')
     plt.show()
+
+
+    print('done')
 
     # elv_filename = "map_layers\\elv_data_"+file_id+".csv"
     # if save_files:

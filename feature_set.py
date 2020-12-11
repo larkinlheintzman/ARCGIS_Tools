@@ -71,8 +71,9 @@ def grab_features(anchor_point, extent, sample_dist = 10, heading = 0, save_file
                 print("querying {} layer...".format(name_list[i]))
                 q = lyr.query(return_count_only=False, return_ids_only=False, return_geometry=True,
                               out_sr='3857', geometry_filter=geom_filter)
-            except json.decoder.JSONDecodeError as e:
-                query_cnt = query_cnt + 1
+            except (json.decoder.JSONDecodeError, TypeError) as e:
+                if type(e) != TypeError:
+                    query_cnt = query_cnt + 1
                 print("error on query: {}".format(e))
                 print("{} layer failed on query, trying again ...".format(name_list[i]))
                 gis = GIS(username="larkinheintzman",password="Meepp97#26640") # linked my arcgis pro account
@@ -218,44 +219,6 @@ def grab_features(anchor_point, extent, sample_dist = 10, heading = 0, save_file
                         inac_bin_map[pts_inac[:,1], pts_inac[:,0]] = 1  # set indices to 1
                         # print("looped(tm) inac calculation time = {} sec".format(time.time() - s_time))
 
-
-                        #-----------------------------
-
-                        # # print("points not looped")
-                        # # do boundary calculation for binary matrix (slow for large bounaries but whatever)
-                        #
-                        # # test_pts is the rectangular matrix covering ring for boundary calculation
-                        # x_test, y_test = np.meshgrid(np.arange(np.min(x_pts), np.max(x_pts), 1) , np.arange(np.min(y_pts), np.max(y_pts), 1))
-                        # test_pts = np.array([x_test.flatten(), y_test.flatten()]).T
-                        # mask = np.zeros(test_pts.shape[0])
-                        # core_pts = np.stack([x_pts,y_pts]).T
-                        #
-                        # for pt in core_pts:
-                        #     test_dists = np.sqrt(np.square(test_pts[:,0] - pt[0]) +
-                        #                          np.square(test_pts[:,1] - pt[1]))
-                        #     mask[test_dists<=1] = 1
-                        #
-                        # # instead of filling gaps, we want to save filled in areas separately
-                        # # so we need to re-create the bin_map here but on inac. points
-                        # x_pts_inac = test_pts[np.where(mask),0].flatten()
-                        # y_pts_inac = test_pts[np.where(mask),1].flatten()
-                        # pts_inac = np.stack([x_pts_inac,y_pts_inac]).T
-                        #
-                        # # remove points being used as linear features
-                        # for pt in core_pts:
-                        #     pts_inac = np.delete(pts_inac, np.where(np.equal(pt,pts_inac).all(1)), axis = 0)
-                        #
-                        # # binarization step
-                        # pts_inac = np.round(pts_inac).astype(np.int)
-                        # # flip y axis
-                        # pts_inac[:,1] = inac_bin_map.shape[1] - pts_inac[:,1]
-                        # # remove any points outside limits of binary map (fixes round versus ceil issues)
-                        # rm_mask = np.logical_or(pts_inac[:,0] < 0, pts_inac[:,0] >= inac_bin_map.shape[1])
-                        # rm_mask = np.logical_or(rm_mask, np.logical_or(pts_inac[:,1] < 0, pts_inac[:,1] >= inac_bin_map.shape[0]))
-                        # pts_inac = pts_inac[np.invert(rm_mask),:]
-                        # inac_bin_map[pts_inac[:,1], pts_inac[:,0]] = 1  # set indices to 1
-                        # print("non looped inac calculation time = {} sec".format(time.time() - s_time))
-
                 # binarization step
                 x_pts_idx = np.round(x_pts).astype(np.int)
                 y_pts_idx = np.round(y_pts).astype(np.int)
@@ -284,19 +247,11 @@ def grab_features(anchor_point, extent, sample_dist = 10, heading = 0, save_file
             np.savetxt(fn,bin_map,delimiter=",", fmt='%f')
 
     # save terrain as csv file (this method is pretty slow, but can compensate with interp)
-    [e,x,y,data,ll_pt] = get_terrain_map(lat_lon=anchor_point,
+    [e,e_interp,x,y,data,ll_pt] = get_terrain_map(lat_lon=anchor_point,
                                          sample_dist = sample_dist,
                                          extent = extent,
                                          heading = -heading) # because flipping
-    # flip elevation data up to down to match other layers
-    e = np.flipud(e)
 
-    # interpolate terrain to match size/resolution of other layers
-    c = np.int(extent/sample_dist)
-    f = interpolate.interp2d(np.linspace(0, extent, c), np.linspace(0, extent, c), e, kind='cubic')
-    x_temp = np.linspace(0,extent,scaled_extent) # get correct size of terrain map
-    y_temp = np.linspace(0,extent,scaled_extent)
-    e_interp = f(x_temp, y_temp)
 
     elv_filename = "map_layers\\elv_data_"+file_id+".csv"
     if save_files:
@@ -352,7 +307,7 @@ if __name__ == "__main__":
         anchor_point = [float(ics_pt[0]), float(ics_pt[1])]
         extent = 20e3
         save_flag = True
-        plot_flag = True
+        plot_flag = False
         file_extension = 'temp'
 
         sample_dist = int(extent/100)
