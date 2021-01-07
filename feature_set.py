@@ -23,6 +23,14 @@ import glob
 
 import matlab.engine
 
+def trim_extent(x_pts, y_pts, scaled_extent):
+    # trim data to only within extents
+    rm_mask = np.logical_or(x_pts < 0, x_pts > scaled_extent) # mask to remove points (x axis)
+    rm_mask = np.logical_or(rm_mask,np.logical_or(y_pts < 0, y_pts > scaled_extent)) # other axis mask
+    x_pts_trimmed = x_pts[np.invert(rm_mask)]
+    y_pts_trimmed = y_pts[np.invert(rm_mask)] # trim points
+    return [x_pts_trimmed, y_pts_trimmed]
+
 def grab_features(anchor_point, extent, sample_dist = 10, heading = 0, save_files = False, file_id = 'temp', plot_data = False):
     roads_url = "https://carto.nationalmap.gov/arcgis/rest/services/transportation/MapServer/30"
     river_url = "https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer/6"
@@ -66,24 +74,35 @@ def grab_features(anchor_point, extent, sample_dist = 10, heading = 0, save_file
 
         q = []
         query_cnt = 0
-        while type(q)==list and query_cnt <= 2: # have to do this because arcgis is sketchy as hell and doesnt always come back
+        while type(q)==list and query_cnt <= 20: # have to do this because arcgis is sketchy as hell and doesnt always come back
             try:
                 print("querying {} layer...".format(name_list[i]))
+                query_starttime = time.time()
+
                 q = lyr.query(return_count_only=False, return_ids_only=False, return_geometry=True,
                               out_sr='3857', geometry_filter=geom_filter)
+
+                query_endtime = time.time()
+
             except (json.decoder.JSONDecodeError, TypeError) as e:
                 if type(e) != TypeError:
                     query_cnt = query_cnt + 1
                 print("error on query: {}".format(e))
                 print("{} layer failed on query, trying again ...".format(name_list[i]))
+                # gis.
                 gis = GIS(username="larkinheintzman",password="Meepp97#26640") # linked my arcgis pro account
                 lyr = FeatureLayer(url=url, gis=gis)
 
-        if query_cnt > 2 and not q:
+        print("query time {}".format(query_endtime - query_starttime))
+
+        if query_cnt > 20 and not q:
             print("{} layer failed too many times, leaving empty".format(name_list[i]))
             if save_files:
                 fn = "map_layers/"+name_list[i]+"_data_"+file_id+".csv"
                 np.savetxt(fn,bin_map,delimiter=",", fmt='%f')
+                if name_list[i] in inac_layers:
+                    fn = "map_layers/" + name_list[i] + "_inac_data_" + file_id + ".csv"
+                    np.savetxt(fn, bin_map, delimiter=",", fmt='%f')
             continue
         print("{} layer sucessfully queried".format(name_list[i]))
 
@@ -91,6 +110,8 @@ def grab_features(anchor_point, extent, sample_dist = 10, heading = 0, save_file
         # feat_points = []
         query_dict = q.to_dict()
         for j,feat in enumerate(query_dict['features']):
+
+            # print("starting feature {} ...".format(j))
 
             # pull feature points out of query, they have different keys...
             if 'paths' in feat['geometry'].keys():
@@ -109,128 +130,108 @@ def grab_features(anchor_point, extent, sample_dist = 10, heading = 0, save_file
             # rotate points about origin to establish heading
             [x_pts, y_pts] = point_rotation(origin = [scaled_extent/2,scaled_extent/2],pt = [x_pts, y_pts],ang = heading)
 
-            # trim data to only within extents (because arcgis cant fuckin' do this)
-            rm_mask = np.logical_or(x_pts < 0, x_pts > scaled_extent) # mask to remove points (x axis)
-            rm_mask = np.logical_or(rm_mask,np.logical_or(y_pts < 0, y_pts > scaled_extent)) # other axis mask
-            x_pts = x_pts[np.invert(rm_mask)]
-            y_pts = y_pts[np.invert(rm_mask)] # trim points
-
-            if x_pts.shape[0] <= 2:
+            # quick check for a feature that does not enter the extent
+            [x_pts_trimmed, y_pts_trimmed] = trim_extent(x_pts, y_pts, scaled_extent)
+            if x_pts_trimmed.shape[0] == 0:
                 continue
-            # treat each section of a feature intersecting the extent as separate
-            dists = np.sqrt(np.sum(np.diff(np.array([x_pts, y_pts]).T, axis = 0)**2, axis=1))
-            breaks = list(np.where(dists >= dists.mean() + 5*dists.std())[0])
 
-            x_pts_full = x_pts # save full coordinate set
-            y_pts_full = y_pts
-            breaks = [-1] + breaks + [x_pts.shape[0]-1]
+            # # treat each section of a feature intersecting the extent as separate
+            # dists = np.sqrt(np.sum(np.diff(np.array([x_pts, y_pts]).T, axis = 0)**2, axis=1))
+            # breaks = list(np.where(dists >= dists.mean() + 5*dists.std())[0])
 
-            for br in range(len(breaks) - 1):
-                x_pts = x_pts_full[(breaks[br]+1):(breaks[br+1]+1)]
-                y_pts = y_pts_full[(breaks[br]+1):(breaks[br+1]+1)]
+            # x_pts_full = x_pts # save full coordinate set
+            # y_pts_full = y_pts
+            # breaks = [-1] + breaks + [x_pts.shape[0]-1]
 
-                if x_pts.shape[0] <= 1: # ignore tiny chops
-                    continue
+            # for br in range(len(breaks) - 1):
+            #     x_pts = x_pts_full[(breaks[br]+1):(breaks[br+1]+1)]
+            #     y_pts = y_pts_full[(breaks[br]+1):(breaks[br+1]+1)]
+            #
+            #     if x_pts.shape[0] <= 1: # ignore tiny chops
+            #         continue
 
-                # if data is too short, add some points in the middle
-                while x_pts.shape[0] < 4:
-                    x_pt = (x_pts[0] + x_pts[1]) / 2  # average between first and second point
-                    y_pt = (y_pts[0] + y_pts[1]) / 2
-                    x_pts = np.insert(x_pts, 1, x_pt)
-                    y_pts = np.insert(y_pts, 1, y_pt)
+            # if data is too short, add some points in the middle
+            # while x_pts.shape[0] < 4:
+            #     x_pt = (x_pts[0] + x_pts[1]) / 2  # average between first and second point
+            #     y_pt = (y_pts[0] + y_pts[1]) / 2
+            #     x_pts = np.insert(x_pts, 1, x_pt)
+            #     y_pts = np.insert(y_pts, 1, y_pt)
 
-                # total length of feature ring/path, for interpolation along features
-                total_len = np.sum(np.sqrt(np.sum(np.diff(np.array([x_pts, y_pts]).T, axis=0) ** 2, axis=1)))
+            # total length of feature ring/path, for interpolation along features
+            total_len = np.sum(np.sqrt(np.sum(np.diff(np.array([x_pts, y_pts]).T, axis=0) ** 2, axis=1)))
 
-                tck, u = interpolate.splprep([x_pts, y_pts], s=0, k=1)  # parametric interpolation
-                u_new = np.arange(0, 1 + 1 / total_len, 1 / total_len)  # scaled discretization
-                pts_interp = interpolate.splev(u_new, tck)
+            interp_starttime = time.time()
 
-                x_pts = pts_interp[0]
-                y_pts = pts_interp[1]
+            tck, u = interpolate.splprep([x_pts, y_pts], s=0, k=1)  # parametric interpolation
+            u_new = np.arange(0, 1 + 1 / total_len, 1 / total_len)  # scaled discretization
+            pts_interp = interpolate.splev(u_new, tck)
 
-                if name_list[i] in inac_layers:
-                    s_time = time.time()
+            interp_endtime = time.time()
 
-                    # loop check
-                    if np.sqrt(np.square(x_pts[0] - x_pts[-1]) + np.square(y_pts[0] - y_pts[-1])) <= 10:
-                        # print('points are looped')
+            print("{} interpolation took {}".format(j,interp_endtime - interp_starttime))
 
-                        # do boundary calculation for binary matrix (slow for large bounaries but whatever)
-                        ring = path.Path(np.array([x_pts, y_pts]).T)
+            x_pts = pts_interp[0]
+            y_pts = pts_interp[1]
 
-                        # test_pts is the rectangular matrix covering ring for boundary calculation
-                        x_test, y_test = np.meshgrid(np.arange(np.min(x_pts), np.max(x_pts), 1) , np.arange(np.min(y_pts), np.max(y_pts), 1))
-                        test_pts = np.array([x_test.flatten(), y_test.flatten()]).T
-                        mask = ring.contains_points(test_pts, radius=1)
+            if name_list[i] in inac_layers:
 
-                        # instead of filling gaps, we want to save filled in areas separately
-                        # so we need to re-create the bin_map here but on inac. points
-                        x_pts_inac = test_pts[mask,0]
-                        y_pts_inac = test_pts[mask,1]
-                        pts_inac = np.stack([x_pts_inac,y_pts_inac]).T
+                inac_starttime = time.time()
 
-                        # remove points being used as linear features
-                        for pt in np.stack([x_pts,y_pts]).T:
-                            pts_inac = np.delete(pts_inac, np.where(np.equal(pt,pts_inac).all(1)), axis = 0)
+                # do boundary calculation for binary matrix (slow for large bounaries but whatever)
+                ring = path.Path(np.array([x_pts, y_pts]).T)
 
-                        # binarization step
-                        pts_inac = np.round(pts_inac).astype(np.int)
-                        # flip y axis
-                        pts_inac[:,1] = inac_bin_map.shape[1] - pts_inac[:,1]
-                        # remove any points outside limits of binary map (fixes round versus ceil issues)
-                        rm_mask = np.logical_or(pts_inac[:,0] < 0, pts_inac[:,0] >= inac_bin_map.shape[1])
-                        rm_mask = np.logical_or(rm_mask, np.logical_or(pts_inac[:,1] < 0, pts_inac[:,1] >= inac_bin_map.shape[0]))
-                        pts_inac = pts_inac[np.invert(rm_mask),:]
-                        inac_bin_map[pts_inac[:,1], pts_inac[:,0]] = 1  # set indices to 1
-                        # print("looped inac calculation time = {} sec".format(time.time() - s_time))
+                # test_pts is the rectangular matrix covering ring for boundary calculation
 
-                    else:
-                        # force it to be a loop
-                        x_pts = np.concatenate([x_pts,3*np.random.random(x_pts.shape)+np.flipud(x_pts)])
-                        y_pts = np.concatenate([y_pts,3*np.random.random(y_pts.shape)+np.flipud(y_pts)])
+                # trim test_pts rectangle to only consider points within the scaled extent
+                [x_pts_trimmed, y_pts_trimmed] = trim_extent(x_pts, y_pts, scaled_extent)
 
-                        # do boundary calculation for binary matrix (slow for large bounaries but whatever)
-                        ring = path.Path(np.array([x_pts, y_pts]).T)
+                x_test, y_test = np.meshgrid(np.arange(np.min(x_pts_trimmed), np.max(x_pts_trimmed), 1),
+                                             np.arange(np.min(y_pts_trimmed), np.max(y_pts_trimmed), 1))
 
-                        # test_pts is the rectangular matrix covering ring for boundary calculation
-                        x_test, y_test = np.meshgrid(np.arange(np.min(x_pts), np.max(x_pts), 1) , np.arange(np.min(y_pts), np.max(y_pts), 1))
-                        test_pts = np.array([x_test.flatten(), y_test.flatten()]).T
-                        mask = ring.contains_points(test_pts, radius=1)
+                test_pts = np.array([x_test.flatten(), y_test.flatten()]).T
+                mask = ring.contains_points(test_pts, radius=1)
 
-                        # instead of filling gaps, we want to save filled in areas separately
-                        # so we need to re-create the bin_map here but on inac. points
-                        x_pts_inac = test_pts[mask,0]
-                        y_pts_inac = test_pts[mask,1]
-                        pts_inac = np.stack([x_pts_inac,y_pts_inac]).T
+                # instead of filling gaps, we want to save filled in areas separately
+                # so we need to re-create the bin_map here but on inac. points
+                x_pts_inac = test_pts[mask,0]
+                y_pts_inac = test_pts[mask,1]
 
-                        # remove points being used as linear features
-                        for pt in np.stack([x_pts,y_pts]).T:
-                            pts_inac = np.delete(pts_inac, np.where(np.equal(pt,pts_inac).all(1)), axis = 0)
+                inac_endtime = time.time()
+                print("{} inac took {}".format(j,inac_endtime - inac_starttime))
 
-                        # binarization step
-                        pts_inac = np.round(pts_inac).astype(np.int)
-                        # flip y axis
-                        pts_inac[:,1] = inac_bin_map.shape[1] - pts_inac[:,1]
-                        # remove any points outside limits of binary map (fixes round versus ceil issues)
-                        rm_mask = np.logical_or(pts_inac[:,0] < 0, pts_inac[:,0] >= inac_bin_map.shape[1])
-                        rm_mask = np.logical_or(rm_mask, np.logical_or(pts_inac[:,1] < 0, pts_inac[:,1] >= inac_bin_map.shape[0]))
-                        pts_inac = pts_inac[np.invert(rm_mask),:]
-                        inac_bin_map[pts_inac[:,1], pts_inac[:,0]] = 1  # set indices to 1
-                        # print("looped(tm) inac calculation time = {} sec".format(time.time() - s_time))
+                pts_inac = np.stack([x_pts_inac,y_pts_inac]).T
+
+                # remove points being used as linear features
+                for pt in np.stack([x_pts_trimmed,y_pts_trimmed]).T:
+                    pts_inac = np.delete(pts_inac, np.where(np.equal(pt,pts_inac).all(1)), axis = 0)
 
                 # binarization step
-                x_pts_idx = np.round(x_pts).astype(np.int)
-                y_pts_idx = np.round(y_pts).astype(np.int)
-
-                # flip y axis because indices are fliped
-                y_pts_idx = bin_map.shape[1] - y_pts_idx
+                pts_inac = np.round(pts_inac).astype(np.int)
+                # flip y axis
+                pts_inac[:,1] = inac_bin_map.shape[1] - pts_inac[:,1]
                 # remove any points outside limits of binary map (fixes round versus ceil issues)
-                rm_mask = np.logical_or(x_pts_idx < 0, x_pts_idx >= bin_map.shape[1])
-                rm_mask = np.logical_or(rm_mask, np.logical_or(y_pts_idx < 0, y_pts_idx >= bin_map.shape[0]))
-                x_pts_idx = x_pts_idx[np.invert(rm_mask)]
-                y_pts_idx = y_pts_idx[np.invert(rm_mask)]
-                bin_map[y_pts_idx, x_pts_idx] = 1 # set indices to 1
+                rm_mask = np.logical_or(pts_inac[:,0] < 0, pts_inac[:,0] >= inac_bin_map.shape[1])
+                rm_mask = np.logical_or(rm_mask, np.logical_or(pts_inac[:,1] < 0, pts_inac[:,1] >= inac_bin_map.shape[0]))
+                pts_inac = pts_inac[np.invert(rm_mask),:]
+                inac_bin_map[pts_inac[:,1], pts_inac[:,0]] = 1  # set indices to 1
+                # print("looped inac calculation time = {} sec".format(time.time() - s_time))
+
+            # trim features to scaled extent
+            [x_pts, y_pts] = trim_extent(x_pts, y_pts, scaled_extent)
+            # binarization step
+            x_pts_idx = np.round(x_pts).astype(np.int)
+            y_pts_idx = np.round(y_pts).astype(np.int)
+
+            # flip y axis because indices are fliped
+            y_pts_idx = bin_map.shape[1] - y_pts_idx
+            # remove any points outside limits of binary map (fixes round versus ceil issues)
+            rm_mask = np.logical_or(x_pts_idx < 0, x_pts_idx >= bin_map.shape[1])
+            rm_mask = np.logical_or(rm_mask, np.logical_or(y_pts_idx < 0, y_pts_idx >= bin_map.shape[0]))
+            x_pts_idx = x_pts_idx[np.invert(rm_mask)]
+            y_pts_idx = y_pts_idx[np.invert(rm_mask)]
+            bin_map[y_pts_idx, x_pts_idx] = 1 # set indices to 1
+
+            # print("done with feature {}".format(j))
 
         # add to viz map
         if name_list[i] in inac_layers:
@@ -281,22 +282,15 @@ def grab_features(anchor_point, extent, sample_dist = 10, heading = 0, save_file
 if __name__ == "__main__":
 
     ics = [
-        # [38.29288, -78.65848,  'BrownMtn-hiker'],
-        # [38.44706, -78.46993,  'DevilsDitch_hikers'],
-        # [37.67752, -79.33887,  'Punchbowl_hiker'],
-        # [37.99092, -78.52798,  'BiscuitRun_hikers'],
-        # [37.519485, -79.651315,  'temp'],
-        # [38.24969, -78.39555,  'Quinque_dementia'],
-        # [42.15495, -74.20523,  '2149'],
-        [42.17965, -74.21362,  '2129'],
-        # [38.20656, -78.67878,  'BrownsCove'],
-        # [38.02723, -78.45076,  'Charlottesville_dementia'],
-        # [34.12751, -116.93247, 'SanBernardinoPeak'] ,
+        [38.29288, -78.65848,  'BrownMtn_hiker'],
+        [38.44706, -78.46993,  'DevilsDitch_hikers'],
+        [37.67752, -79.33887,  'Punchbowl_hiker'],
+        [37.99092, -78.52798,  'BiscuitRun_hikers'],
+        [38.24969, -78.39555,  'Quinque_dementia'],
+        [38.20656, -78.67878,  'BrownsCove'],
+        [38.02723, -78.45076,  'Charlottesville_dementia'],
+        [34.12751, -116.93247, 'SanBernardinoPeak'] ,
         ]
-
-    # 42.17965 -74.21362
-    # 42.15495 -74.20523
-
 
     base_dir = 'C:/Users/Larkin/ags_grabber'
 

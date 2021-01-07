@@ -36,6 +36,7 @@ fnamerr = strjoin({basedir, '/map_layers/railroads_data_temp.csv'},'');
 fnamep = strjoin({basedir, '/map_layers/powerlines_data_temp.csv'},'');
 fnamelbd = strjoin({basedir, '/map_layers/lakes_data_temp.csv'},'');
 fnamelin = strjoin({basedir, '/map_layers/lakes_inac_data_temp.csv'},'');
+fnametr = strjoin({basedir, '/map_layers/trails_data_temp.csv'},'');
 
 Zelev = load(fnameelev);
 BWriver = load(fnameriv);
@@ -46,6 +47,7 @@ BWrroads = load(fnamerr);
 BWpower = load(fnamep);
 BWlakeLF = load(fnamelbd);
 BWlakeInac = load(fnamelin);
+BWtrails = load(fnametr);
 
 sZBW = size(Zelev);
 
@@ -60,7 +62,7 @@ BWelevationGrad = double(BWs);
 % figure, imshow(BWs)
 
 %% save BW matrices
-BWLF = BWelevationGrad + BWriver + BWriverLF + BWlakeLF + BWroads + BWrroads + BWpower;
+BWLF = BWelevationGrad + BWriver + BWriverLF + BWlakeLF + BWroads + BWrroads + BWpower + BWtrails;
 BWInac = BWriverInac + BWlakeInac;
 BWLF(BWLF ~= 0) = 1;
 BWInac(BWInac ~= 0) = 1;

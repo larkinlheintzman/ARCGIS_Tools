@@ -1,3 +1,4 @@
+numpy
 arcgis==1.8.2
 argon2-cffi @ file:///C:/ci/argon2-cffi_1596828549974/work
 attrs @ file:///tmp/build/80754af9/attrs_1600298409949/work
