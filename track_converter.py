@@ -4,38 +4,46 @@ import csv
 import numpy as np
 import matplotlib.pyplot as plt
 
-with open("C:\\Users\\Larkin\\ags_grabber\\DevilsDitch_hikers.csv") as f:
-    reader = csv.reader(f, delimiter=',')
-    headers = next(reader)
-    data = list(reader)
-
-# plot each track based on order column
-done = False
-last_idx = 0
-start_idx = 0
-
-ap = [38.44706, -78.46993]
-ap_meters = lat_lon2meters(ap[0], ap[1])
+# params = [37.67752, -79.33887,  'punchbowl']
+# # params = [38.29288, -78.65848,  'brownmountain']
+# # params = [38.44706, -78.46993,  'devilsditch']
+# # params = [37.99092, -78.52798,  'biscuitrun']
+# # params = [37.82520, -79.081910, 'priest']
+# # params = [34.12751, -116.93247, 'sanbernardino']
+#
+# with open("C:\\Users\\Larkin\\ags_grabber\\track_temp.csv") as f:
+#     reader = csv.reader(f, delimiter=',')
+#     data = []
+#     for row in reader:
+#         if any(x.strip() for x in row):
+#             data.append(row)
+#     track = np.array(data).astype(np.float)
+#
+# ap_meters = lat_lon2meters(params[0], params[1])
 extent = 20e3
 scale_factor = 3/20 # factor to get 6.66667m mapping from 1m mapping (1/6.6667)
+#
+# xy = lat_lon2meters(track[:,1], track[:,0])
+#
+# x_pts = (np.array(xy[0]) - (ap_meters[0] - (extent/2)))*scale_factor # reduces number of interpolants
+# y_pts = (np.array(xy[1]) - (ap_meters[1] - (extent/2)))*scale_factor
+#
+# np.savetxt(params[2] + '_track_meters.csv',np.array([x_pts, y_pts]),delimiter=",", fmt='%f')
+# plt.plot(x_pts, y_pts)
+# plt.show()
 
-order = [np.int(d[0]) for d in data] # order column
-lat_lon = np.array([[np.float(d[1]), np.float(d[2])] for d in data])
+points = [[37.67752, -79.33887,  'punchbowl'],
+          [38.29288, -78.65848,  'brownmountain'],
+          [38.44706, -78.46993,  'devilsditch'],
+          [37.99092, -78.52798,  'biscuitrun'],
+          [37.82520, -79.081910, 'priest'],
+          [34.12751, -116.93247, 'sanbernardino']]
 
-for i in range(order.count(1)):
-    if i == order.count(1)-1: # last iterations
-        xy = lat_lon2meters(lat_lon[start_idx:,0], lat_lon[start_idx:,1])
-        plt.plot(xy[0],xy[1])
-
-        x_pts = (np.array(xy[0]) - (ap_meters[0] - (extent/2)))*scale_factor # reduces number of interpolants
-        y_pts = (np.array(xy[1]) - (ap_meters[1] - (extent/2)))*scale_factor
-
-        np.savetxt('devilsditch_track_meters.csv',np.array([x_pts, y_pts]),delimiter=",", fmt='%f')
-    else:
-        last_idx = order.index(1,last_idx+1)
-        xy = lat_lon2meters(lat_lon[start_idx:last_idx,0], lat_lon[start_idx:last_idx,1])
-        plt.plot(xy[0],xy[1])
-        start_idx = last_idx
-    # plt.show()
-    # print(len(xy[0]))
-
+for pt in points:
+    pt_meters = lat_lon2meters(pt[0], pt[1])
+    print(pt[2])
+    print(meters2lat_lon(pt_meters[0] - extent/2, pt_meters[1] - extent/2))
+    print(meters2lat_lon(pt_meters[0] + extent/2, pt_meters[1] - extent/2))
+    print(meters2lat_lon(pt_meters[0] + extent/2, pt_meters[1] + extent/2))
+    print(meters2lat_lon(pt_meters[0] - extent/2, pt_meters[1] + extent/2))
+    print("-----------------")
