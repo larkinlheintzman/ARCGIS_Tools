@@ -38,16 +38,16 @@ function result = importmap_py(save_filename, basedir)
 %fnamelin = strjoin({basedir, '/map_layers/',save_filename,'/lakes_inac_data_.csv'},'');
 %fnametr = strjoin({basedir, '/map_layers/',save_filename,'/trails_data_.csv'},'');
 
-fnameelev = strjoin({basedir, '/map_layers','/elv_data_.csv'},'');
-fnameriv = strjoin({basedir, '/map_layers','/rivers_data_.csv'},'');
-fnamerivbd = strjoin({basedir, '/map_layers','/rivers_bdd_data_.csv'},'');
-fnamerivin = strjoin({basedir, '/map_layers','/rivers_bdd_inac_data_.csv'},'');
-fnameroad = strjoin({basedir, '/map_layers','/roads_data_.csv'},'');
-fnamerr = strjoin({basedir, '/map_layers','/railroads_data_.csv'},'');
-fnamep = strjoin({basedir, '/map_layers','/powerlines_data_.csv'},'');
-fnamelbd = strjoin({basedir, '/map_layers','/lakes_data_.csv'},'');
-fnamelin = strjoin({basedir, '/map_layers','/lakes_inac_data_.csv'},'');
-fnametr = strjoin({basedir, '/map_layers','/trails_data_.csv'},'');
+fnameelev = strjoin({basedir, '/map_layers','/elv_data_temp.csv'},'');
+fnameriv = strjoin({basedir, '/map_layers','/rivers_data_temp.csv'},'');
+fnamerivbd = strjoin({basedir, '/map_layers','/rivers_bdd_data_temp.csv'},'');
+fnamerivin = strjoin({basedir, '/map_layers','/rivers_bdd_inac_data_temp.csv'},'');
+fnameroad = strjoin({basedir, '/map_layers','/roads_data_temp.csv'},'');
+fnamerr = strjoin({basedir, '/map_layers','/railroads_data_temp.csv'},'');
+fnamep = strjoin({basedir, '/map_layers','/powerlines_data_temp.csv'},'');
+fnamelbd = strjoin({basedir, '/map_layers','/lakes_data_temp.csv'},'');
+fnamelin = strjoin({basedir, '/map_layers','/lakes_inac_data_temp.csv'},'');
+fnametr = strjoin({basedir, '/map_layers','/trails_data_temp.csv'},'');
 
 
 
